@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  pull-requests: write
+  issues: write
+  
 jobs:
   deploy_preview:
     runs-on: self-hosted
@@ -16,12 +20,13 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push API Image
         run: |
-          docker build -t jesus6190/lunchbox_api:pr-${PR_NUMBER} 
+          cd api
+          docker build -t jesus6190/lunchbox_api:pr-${PR_NUMBER} .
           docker push jesus6190/lunchbox_api:pr-${PR_NUMBER}
 
       - name: Build and Push Frontend Image
@@ -42,8 +47,8 @@ jobs:
         run: |
           export PR_NUMBER=${{ github.event.pull_request.number }}
           mkdir -p kube/generated
-          for f in ./kube/templates/*.tpl.yml; do
-            outname=$(basename "$f" .tpl.yml).yml
+          for f in ./kube/templates/*.yml; do
+            outname=$(basename "$f")
             envsubst < "$f" > "./kube/generated/$outname"
           done
 
